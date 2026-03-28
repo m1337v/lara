@@ -19,13 +19,11 @@ jobs:
         run: |
           bash scripts/build_ipa.sh
 
-      - name: authenticate gh cli
-        uses: cli/gh-actions@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: delete previous 'latest' release if it exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          gh auth login --with-token <<< "$GITHUB_TOKEN"
           if gh release view latest >/dev/null 2>&1; then
             gh release delete latest --yes
           else
