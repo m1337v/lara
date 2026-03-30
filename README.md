@@ -24,6 +24,9 @@ If lara doesnt work on your device, and you want to help the project, please als
 - on iOS 17.x, the kernel panics when lara is closed from the app switcher. this may or may not be fixed soon?
 - dirtyzero does not work.
 
+## tips:
+deleting and redownloading kernelcache is known to fix many issues. do this before asking me for support.
+
 ## credits:
 - opa334 for the kernel exploit poc, ChOma and XPF
 - AppInstaller iOS for help with offsets
