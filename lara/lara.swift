@@ -7,14 +7,19 @@
 
 import SwiftUI
 
+let g_isunsupported: Bool = isunsupported()
+
 @main
 struct lara: App {
+    @ObservedObject private var mgr = laramgr.shared
     @Environment(\.scenePhase) private var scenePhase
     @State var showunsupported: Bool = false
+    @State private var selectedtab: Int = 1
     private let keepalivekey = "keepalive"
+    private let showfmintabskey = "showfmintabs"
 
     init() {
-        if isunsupported() {
+        if g_isunsupported {
             showunsupported = true
         }
         
@@ -24,23 +29,43 @@ struct lara: App {
             }
         }
         
+        if g_isunsupported {
+            print("device may be unsupported")
+        } else {
+            print("device should be supported")
+        }
+        
         globallogger.capture()
     }
 
     var body: some Scene {
         WindowGroup {
-            TabView {
+            TabView(selection: $selectedtab) {
+                if mgr.vfsready && UserDefaults.standard.bool(forKey: showfmintabskey) {
+                    SantanderView(startPath: "/")
+                        .tabItem {
+                            Image(systemName: "document.badge.gearshape.fill")
+                        }
+                        .tag(0)
+                }
+
                 ContentView()
                     .tabItem {
-                        Label("lara", systemImage: "ant.fill")
+                        Image(systemName: "ant.fill")
                     }
+                    .tag(1)
 
                 LogsView(logger: globallogger)
                     .tabItem {
-                        Label("Logs", systemImage: "text.document.fill")
+                        Image(systemName: "text.document.fill")
                     }
+                    .tag(2)
             }
             .onAppear {
+                if g_isunsupported {
+                    showunsupported = true
+                }
+                
                 init_offsets()
             }
             .onChange(of: scenePhase) { phase in
@@ -51,7 +76,7 @@ struct lara: App {
                 }
             }
             .alert(isPresented: $showunsupported) {
-                .init(title: Text("Unsupported"), message: Text("Lara is currently not supported on this device. Possible reasons:\nYour device is iOS newer than ios 26.0.1\nYour device is older than iOS 17.0\nYour device has MIE\n\nIt probably wont work."))
+                .init(title: Text("Unsupported"), message: Text("Lara is currently not supported on this device. Possible reasons:\nYour device is iOS newer than ios 26.0.1\nYour device is older than iOS 17.0\nYour device has MIE\nYou installed lara via LiveContainer\n\nLara will probably not work."))
             }
         }
     }

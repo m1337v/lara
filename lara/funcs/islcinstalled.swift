@@ -9,12 +9,12 @@ import Foundation
 import MachO
 
 func islcinstalled() -> Bool {
-    globallogger.log("\nloaded images:")
+    // print("\nloaded images:")
 
     var detected = false
     let count = _dyld_image_count()
 
-    globallogger.log("image count: \(count)\n")
+    // print("image count: \(count)\n")
 
     for i in 0..<count {
         guard let cName = _dyld_get_image_name(i) else {
@@ -29,14 +29,14 @@ func islcinstalled() -> Bool {
             lower.contains("tweakloader.dylib")
 
         if match {
-            globallogger.log("[\(i)] \(name) <- aha!")
+            // print("[\(i)] \(name) <- aha!")
             detected = true
         } else {
-            globallogger.log("[\(i)] \(name)")
+            // print("[\(i)] \(name)")
         }
     }
 
-    globallogger.log("\nlivecontainer detected: \(detected ? "yeah" : "fuck nah")")
+    globallogger.log("\nlivecontainer detected: \(detected ? "yeah" : "nah")")
 
     return detected
 }

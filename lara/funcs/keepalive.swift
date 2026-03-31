@@ -20,6 +20,15 @@ func toggleka() {
         return
     }
     
+    do {
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        try session.setActive(true)
+    } catch {
+        globallogger.log("(ka) audio session failed: \(error)")
+        return
+    }
+
     let fileurl = getwavurl()
     
     if !FileManager.default.fileExists(atPath: fileurl.path) {

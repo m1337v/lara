@@ -14,16 +14,18 @@ struct SettingsView: View {
     @State private var downloadingkernelcache = false
     @AppStorage("loggernobullshit") private var loggernobullshit: Bool = false
     @AppStorage("keepalive") private var iskeepalive: Bool = true
+    @AppStorage("showfmintabs") private var showfmintabs: Bool = true
+    @AppStorage("selectedmethod") private var selectedmethod: method = .vfs
     
-    var appName: String {
+    var appname: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
         ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
         ?? "Unknown App"
     }
-    var appVersion: String {
+    var appversion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     }
-    var appIcon: UIImage {
+    var appicon: UIImage {
         if let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
            let primary = icons["CFBundlePrimaryIcon"] as? [String: Any],
            let files = primary["CFBundleIconFiles"] as? [String],
@@ -40,22 +42,36 @@ struct SettingsView: View {
             List {
                 Section {
                     HStack(spacing: 12) {
-                        Image(uiImage: appIcon)
+                        Image(uiImage: appicon)
                             .resizable()
                             .frame(width: 40, height: 40)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         
                         VStack(alignment: .leading) {
-                            Text(appName)
+                            Text(appname)
                                 .font(.headline)
                             
-                            Text("Version \(appVersion)")
+                            Text("Version \(appversion)")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                     }
                 } header: {
                     Text("Lara")
+                }
+                
+                Section {
+                    Picker("", selection: $selectedmethod) {
+                        ForEach(method.allCases, id: \.self) { method in
+                            Text(method.rawValue).tag(method)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(true)
+                } header: {
+                    Text("Method")
+                } footer: {
+                    Text("etas0n™?")
                 }
                 
                 Section {
@@ -72,6 +88,8 @@ struct SettingsView: View {
                                 if kaenabled { toggleka() }
                             }
                         }
+                    
+                    Toggle("Show File Manager in Tabs", isOn: $showfmintabs)
                 } header: {
                     Text("Lara Settings")
                 } footer: {
@@ -209,4 +227,9 @@ struct SettingsView: View {
             Text("This will delete the downloaded kernelcache and remove saved offsets.")
         }
     }
+}
+
+enum method: String, CaseIterable {
+    case vfs = "VFS"
+    case sbx = "SBX"
 }
