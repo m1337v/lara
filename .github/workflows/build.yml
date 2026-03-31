@@ -1,34 +1,67 @@
 name: build
 
 on:
-push:
-branches: [ main ]
-pull_request:
+  push:
+    branches: [ main ]
 
 jobs:
-build:
-runs-on: macos-latest
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
 
-```
-steps:
-  - name: checkout
-    uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  - name: select xcode
-    run: sudo xcode-select -s /Applications/Xcode.app
+      - name: build ipa
+        run: |
+          xcodebuild \
+            -project tree/main/lara.xcodeproj \
+            -scheme lara \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            archive \
+            -archivePath build/lara.xcarchive
 
-  - name: show xcode version
-    run: xcodebuild -version
+          xcodebuild -exportArchive \
+            -archivePath build/lara.xcarchive \
+            -exportPath build \
+            -exportOptionsPlist /dev/stdin <<EOF
+          {
+            "method": "development"
+          }
+          EOF
 
-  - name: build
-    run: |
-      xcodebuild \
-        -project tree/main/lara.xcodeproj \
-        -scheme lara \
-        -configuration Debug \
-        -sdk iphonesimulator \
-        CODE_SIGNING_ALLOWED=NO \
-        CODE_SIGNING_REQUIRED=NO \
-        CODE_SIGN_IDENTITY="" \
-        build
-```
+      - name: generate build id
+        id: buildid
+        run: echo "id=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: collect commits
+        run: |
+          git log --since="12 hours ago" --pretty=format:"- %h %s (%an)" > notes.txt
+
+      - name: archive old latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view latest >/dev/null 2>&1; then
+            echo "archiving previous latest"
+            IPA=$(gh release download latest -p "*.ipa" -D old_release | head -n1)
+            gh release create "release-${{ steps.buildid.outputs.id }}-old" "$IPA" \
+              --title "release ${{ steps.buildid.outputs.id }} (old)" \
+              --notes "archived previous release"
+            gh release delete latest -y
+            git push origin :refs/tags/latest || true
+          fi
+
+      - name: create new latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          IPA=$(find build -name "*.ipa" | head -n1)
+          gh release create latest "$IPA" \
+            --title "latest build (${{ steps.buildid.outputs.id }})" \
+            --notes-file notes.txt
