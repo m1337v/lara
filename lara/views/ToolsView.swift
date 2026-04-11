@@ -69,8 +69,7 @@ struct ToolsView: View {
             
             Section {
                 Button {
-                    globallogger.log(String(format: "0x%llx",procbyname("springboard")))
-                    // killproc("springboard")
+                    mgr.respring()
                 } label: {
                     Text("Respring (probably broken)")
                 }
