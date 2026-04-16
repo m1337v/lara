@@ -48,3 +48,4 @@ Steps to reproduce the behavior:
 - [ ] I can reproduce this on the latest version / commit of Lara
 - [ ] I have provided sufficient detail (device info, logs, reproduction steps) for a maintainer to investigate
 - [ ] I agree to communicate respectfully with the developers and understand that harassment may result in restricted support
+<!-- To Mark a check Put an "x" inside the brackets like so [x] -->
