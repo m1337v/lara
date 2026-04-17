@@ -14,7 +14,7 @@ struct ContentView: View {
     @State private var hasoffsets = haskernproc()
     @State private var showsettings = false
     @State private var selectedmethod: method = .hybrid
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -63,7 +63,7 @@ struct ContentView: View {
                         }
                         .disabled(mgr.dsrunning)
                         .disabled(mgr.dsready)
-                        
+
                         HStack {
                             Text("kernproc:")
                             Spacer()
@@ -71,7 +71,7 @@ struct ContentView: View {
                                 .font(.system(.body, design: .monospaced))
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         HStack {
                             Text("rootvnode:")
                             Spacer()
@@ -79,7 +79,7 @@ struct ContentView: View {
                                 .font(.system(.body, design: .monospaced))
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         if mgr.dsready {
                             HStack {
                                 Text("kernel_base:")
@@ -88,7 +88,7 @@ struct ContentView: View {
                                     .font(.system(.body, design: .monospaced))
                                     .foregroundColor(.secondary)
                             }
-                            
+
                             HStack {
                                 Text("kernel_slide:")
                                 Spacer()
@@ -140,28 +140,33 @@ struct ContentView: View {
                                 }
                             }
                             .disabled(!mgr.dsready || mgr.vfsready || mgr.vfsrunning)
-                            
-                            if mgr.vfsready {
-                                NavigationLink("Font Overwrite") {
-                                    FontPicker(mgr: mgr)
-                                }
 
-                                NavigationLink("Card Overwrite") {
-                                    CardView()
-                                }
-                                
-                                NavigationLink("Custom Overwrite") {
-                                    CustomView(mgr: mgr)
-                                }
-                                
-                                NavigationLink("DirtyZero (Broken)") {
-                                    ZeroView(mgr: mgr)
-                                }
-                                
-                                if !showfmintabs {
-                                    NavigationLink("File Manager") {
-                                        SantanderView(startPath: "/")
+                            if mgr.vfsready {
+                                NavigationLink("Tweaks") {
+                                    List {
+                                        NavigationLink("Font Overwrite") {
+                                            FontPicker(mgr: mgr)
+                                        }
+
+                                        NavigationLink("Card Overwrite") {
+                                            CardView()
+                                        }
+
+                                        NavigationLink("Custom Overwrite") {
+                                            CustomView(mgr: mgr)
+                                        }
+
+                                        NavigationLink("DirtyZero (Broken)") {
+                                            ZeroView(mgr: mgr)
+                                        }
+
+                                        if !showfmintabs {
+                                            NavigationLink("File Manager") {
+                                                SantanderView(startPath: "/")
+                                            }
+                                        }
                                     }
+                                    .navigationTitle(Text("Tweaks"))
                                 }
                             }
                         } else if selectedmethod == .sbx {
@@ -197,38 +202,43 @@ struct ContentView: View {
                                 }
                             }
                             .disabled(!mgr.dsready || mgr.sbxready || mgr.sbxrunning)
-                            
+
                             if mgr.sbxready {
-                                if !showfmintabs {
-                                    NavigationLink("File Manager") {
-                                        SantanderView(startPath: "/")
-                                    }
-                                }
+                                NavigationLink("Tweaks") {
+                                    List {
+                                        if !showfmintabs {
+                                            NavigationLink("File Manager") {
+                                                SantanderView(startPath: "/")
+                                            }
+                                        }
 
-                                NavigationLink("Card Overwrite") {
-                                    CardView()
-                                }
-                                
-                                NavigationLink("3 App Bypass") {
-                                    AppsView(mgr: mgr)
-                                }
+                                        NavigationLink("Card Overwrite") {
+                                            CardView()
+                                        }
 
-                                NavigationLink("VarClean") {
-                                    VarCleanView()
-                                }
-                                
-                                NavigationLink("Unblacklist (Broken?)") {
-                                    WhitelistView()
-                                }
-                                
-                                if 1 == 2 {
-                                    NavigationLink("MobileGestalt") {
-                                        EditorView()
+                                        NavigationLink("3 App Bypass") {
+                                            AppsView(mgr: mgr)
+                                        }
+
+                                        NavigationLink("VarClean") {
+                                            VarCleanView()
+                                        }
+
+                                        NavigationLink("Unblacklist (Broken?)") {
+                                            WhitelistView()
+                                        }
+
+                                        if 1 == 2 {
+                                            NavigationLink("MobileGestalt") {
+                                                EditorView()
+                                            }
+
+                                            NavigationLink("Passcode Theme") {
+                                                PasscodeView(mgr: mgr)
+                                            }
+                                        }
                                     }
-                                    
-                                    NavigationLink("Passcode Theme") {
-                                        PasscodeView(mgr: mgr)
-                                    }
+                                    .navigationTitle(Text("Tweaks"))
                                 }
                             }
                         } else {
@@ -299,54 +309,63 @@ struct ContentView: View {
                                 }
                                 .disabled(!mgr.dsready || mgr.vfsready || mgr.vfsrunning)
                             }
-                            
+
                             if mgr.vfsready && mgr.sbxready {
-                                if !showfmintabs {
-                                    NavigationLink("File Manager") {
-                                        SantanderView(startPath: "/")
-                                    }
-                                }
-                                
-                                NavigationLink("Font Overwrite") {
-                                    FontPicker(mgr: mgr)
-                                }
+                                NavigationLink("Tweaks") {
+                                    List {
+                                        if !showfmintabs {
+                                            NavigationLink("File Manager") {
+                                                SantanderView(startPath: "/")
+                                            }
+                                        }
 
-                                NavigationLink("Card Overwrite") {
-                                    CardView()
-                                }
-                                
-                                NavigationLink("Custom Overwrite") {
-                                    CustomView(mgr: mgr)
-                                }
-                                
-                                NavigationLink("MobileGestalt") {
-                                    EditorView()
-                                }
-                                
-                                NavigationLink("Whitelist") {
-                                    WhitelistView()
-                                }
-                                
-                                NavigationLink("DirtyZero") {
-                                    ZeroView(mgr: mgr)
-                                }
-                                
-                                NavigationLink("3 App Bypass") {
-                                    AppsView(mgr: mgr)
-                                }
+                                        NavigationLink("Font Overwrite") {
+                                            FontPicker(mgr: mgr)
+                                        }
 
-                                NavigationLink("VarClean") {
-                                    VarCleanView()
-                                }
-                                
-                                if 1 == 2 {
-                                    NavigationLink("Passcode Theme") {
-                                        PasscodeView(mgr: mgr)
+                                        NavigationLink("Card Overwrite") {
+                                            CardView()
+                                        }
+
+                                        NavigationLink("Custom Overwrite") {
+                                            CustomView(mgr: mgr)
+                                        }
+
+                                        NavigationLink("MobileGestalt") {
+                                            EditorView()
+                                        }
+
+                                        NavigationLink("3 App Bypass") {
+                                            AppsView(mgr: mgr)
+                                        }
+
+                                        NavigationLink("VarClean") {
+                                            VarCleanView()
+                                        }
+
+                                        NavigationLink("Whitelist") {
+                                            WhitelistView()
+                                        }
+
+                                        NavigationLink("DirtyZero") {
+                                            ZeroView(mgr: mgr)
+                                        }
+
+                                        if 1 == 2 {
+                                            NavigationLink("Control Center") {
+                                                CCView()
+                                            }
+
+                                            NavigationLink("Passcode Theme") {
+                                                PasscodeView(mgr: mgr)
+                                            }
+
+                                            NavigationLink("3 App Bypass") {
+                                                AppsView(mgr: mgr)
+                                            }
+                                        }
                                     }
-                                    
-                                    NavigationLink("3 App Bypass") {
-                                        AppsView(mgr: mgr)
-                                    }
+                                    .navigationTitle(Text("Tweaks"))
                                 }
                             }
                         }
@@ -357,18 +376,54 @@ struct ContentView: View {
                             Text("Font Overwrite is only available in VFS or Hybrid mode. (Settings -> Method -> VFS/Hybrid)")
                         }
                     }
-                    
+
+                    #if !DISABLE_REMOTECALL
+                    Section {
+                        Button("Init RemoteCall") {
+                            mgr.logmsg("T")
+                            mgr.rcinit(process: "SpringBoard", migbypass: false) { success in
+                                if success {
+                                    mgr.logmsg("rc init succeeded!")
+                                    let pid = mgr.rccall(name: "getpid")
+                                    mgr.logmsg("remote getpid() returned: \(pid)")
+                                } else {
+                                    mgr.logmsg("rc init failed")
+                                }
+                            }
+                        }
+                        .disabled(!mgr.dsready || mgr.remotecallrunning)
+
+                        if mgr.remotecallrunning {
+                            NavigationLink("Tweaks") {
+                                RemoteView(mgr: mgr)
+                            }
+
+                            Button("Destroy RemoteCall") {
+                                mgr.rcdestroy()
+                            }
+                        }
+                    } header: {
+                        Text("RemoteCall")
+                    } footer: {
+                        if isdebugged() {
+                            Text("Not available when a debugger is attached.")
+                        }
+                        Text("RemoteCall is still in development and may not work properly 100% of the time.")
+                    }
+                    .disabled(isdebugged())
+                    #endif
+
                     Section {
                         if mgr.dsready {
                             NavigationLink("Tools") {
                                 ToolsView()
                             }
                         }
-            
+
                         Button("Respring") {
                             mgr.respring()
                         }
-                        
+
                         Button("Panic!") {
                             mgr.panic()
                         }
@@ -377,7 +432,7 @@ struct ContentView: View {
                         Text("Other")
                     }
                 }
-                
+
             }
             .navigationTitle("lara")
             .toolbar {
@@ -394,14 +449,14 @@ struct ContentView: View {
             SettingsView(mgr: mgr, hasoffsets: $hasoffsets)
         }
         .onAppear {
-            refreshSelectedMethod()
+            refreshselectedmethod()
         }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
-            refreshSelectedMethod()
+            refreshselectedmethod()
         }
     }
 
-    private func refreshSelectedMethod() {
+    private func refreshselectedmethod() {
         if let raw = UserDefaults.standard.string(forKey: "selectedmethod"),
            let m = method(rawValue: raw) {
             selectedmethod = m

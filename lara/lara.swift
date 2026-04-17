@@ -24,7 +24,7 @@ struct lara: App {
     @State private var selectedtab: Int = 1
     private let keepalivekey = "keepalive"
     @AppStorage("showfmintabs") private var showfmintabs: Bool = true
-    @AppStorage("selectedmethod") private var selectedmethod: method = .sbx
+    @AppStorage("selectedmethod") private var selectedmethod: method = .hybrid
 
     init() {
         // fix file picker
@@ -84,7 +84,24 @@ struct lara: App {
                 offsets_init()
             }
             .onChange(of: scenePhase) { phase in
-                if phase == .background {
+                if phase == .inactive || phase == .background {
+                    if mgr.remotecallrunning {
+                        var bgTask: UIBackgroundTaskIdentifier = .invalid
+                        bgTask = UIApplication.shared.beginBackgroundTask(withName: "RemoteCallCleanup") {
+                            if bgTask != .invalid {
+                                UIApplication.shared.endBackgroundTask(bgTask)
+                                bgTask = .invalid
+                            }
+                        }
+
+                        mgr.rcdestroy {
+                            if bgTask != .invalid {
+                                UIApplication.shared.endBackgroundTask(bgTask)
+                                bgTask = .invalid
+                            }
+                        }
+                    }
+
                     globallogger.stopcapture()
                 } else if phase == .active {
                     globallogger.capture()

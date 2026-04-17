@@ -9,7 +9,7 @@ import SwiftUI
 import UIKit
 import PhotosUI
 import UniformTypeIdentifiers
-import ZIPFoundation
+import Compression
 
 struct PasscodeKey: Identifiable {
     let id: String
@@ -166,7 +166,7 @@ struct PasscodeView: View {
                 let zipPath = tempDir.appendingPathComponent("theme.zip")
                 try data.write(to: zipPath)
                 
-                try FileManager.default.unzipItem(at: zipPath, to: tempDir)
+                try unzipFile(at: zipPath, to: tempDir)
                 
                 let extractedKeys = try findAndExtractImages(from: tempDir)
                 
@@ -184,6 +184,84 @@ struct PasscodeView: View {
                 }
             }
         }
+    }
+    
+    func unzipFile(at source: URL, to destination: URL) throws {
+        let fileData = try Data(contentsOf: source)
+        var offset = 0
+        
+        while offset < fileData.count - 4 {
+            let signature = fileData.subdata(in: offset..<offset+4).withUnsafeBytes { $0.load(as: UInt32.self) }
+            
+            if signature == 0x04034b50 {
+                guard let entry = readLocalFileEntry(data: fileData, offset: offset) else { break }
+                
+                let entryName = String(data: fileData.subdata(in: offset+30..<offset+30+entry.nameLength), encoding: .utf8) ?? ""
+                
+                if !entryName.hasSuffix("/") {
+                    let entryDestination = destination.appendingPathComponent(entryName)
+                    let parentDir = entryDestination.deletingLastPathComponent()
+                    try FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
+                    
+                    if entry.compressionMethod == 0 {
+                        let fileDataEntry = fileData.subdata(in: offset+30+entry.nameLength..<offset+30+entry.nameLength+entry.compressedSize)
+                        try fileDataEntry.write(to: entryDestination)
+                    } else if entry.compressionMethod == 8 {
+                        let compressedData = fileData.subdata(in: offset+30+entry.nameLength..<offset+30+entry.nameLength+entry.compressedSize)
+                        let decompressed = decompress(deflate: compressedData, originalSize: entry.uncompressedSize)
+                        if let decompressed {
+                            try decompressed.write(to: entryDestination)
+                        }
+                    }
+                }
+                
+                offset += 30 + entry.nameLength + entry.extraLength + entry.compressedSize
+            } else {
+                break
+            }
+        }
+    }
+    
+    struct ZipEntry {
+        let compressionMethod: UInt16
+        let compressedSize: Int
+        let uncompressedSize: Int
+        let nameLength: Int
+        let extraLength: Int
+    }
+    
+    func readLocalFileEntry(data: Data, offset: Int) -> ZipEntry? {
+        guard offset + 30 <= data.count else { return nil }
+        
+        let compressionMethod = data.subdata(in: offset+8..<offset+10).withUnsafeBytes { $0.load(as: UInt16.self) }
+        let compressedSize = Int(data.subdata(in: offset+18..<offset+22).withUnsafeBytes { $0.load(as: UInt32.self) })
+        let uncompressedSize = Int(data.subdata(in: offset+22..<offset+26).withUnsafeBytes { $0.load(as: UInt32.self) })
+        let nameLength = Int(data.subdata(in: offset+26..<offset+28).withUnsafeBytes { $0.load(as: UInt16.self) })
+        let extraLength = Int(data.subdata(in: offset+28..<offset+30).withUnsafeBytes { $0.load(as: UInt16.self) })
+        
+        return ZipEntry(compressionMethod: compressionMethod, compressedSize: compressedSize, uncompressedSize: uncompressedSize, nameLength: nameLength, extraLength: extraLength)
+    }
+    
+    func decompress(deflate data: Data, originalSize: Int) -> Data? {
+        guard originalSize > 0 else { return Data() }
+        
+        let pageSize = 16384
+        let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: originalSize)
+        defer { destinationBuffer.deallocate() }
+        
+        let result = data.withUnsafeBytes { (sourceBuffer: UnsafeRawBufferPointer) -> Int in
+            guard let baseAddress = sourceBuffer.baseAddress else { return 0 }
+            return compression_decode_buffer(
+                destinationBuffer,
+                originalSize,
+                baseAddress.assumingMemoryBound(to: UInt8.self),
+                data.count,
+                nil,
+                COMPRESSION_ZLIB
+            )
+        }
+        
+        return result == originalSize ? Data(bytes: destinationBuffer, count: originalSize) : nil
     }
     
     func findAndExtractImages(from directory: URL) throws -> [String: Data] {

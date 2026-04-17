@@ -2,19 +2,24 @@
 set -euo pipefail
 
 BUILD_MACOS=0
+BUILD_ARM64=0
 for arg in "$@"; do
   case "$arg" in
     --macos)
       BUILD_MACOS=1
       ;;
+    --arm64)
+      BUILD_ARM64=1
+      ;;
     -h|--help)
-      echo "Usage: $0 [--macos]"
+      echo "Usage: $0 [--macos] [--arm64]"
       echo "  --macos   Build the Mac Catalyst .app into dist/"
+      echo "  --arm64   Build for arm64 instead of arm64e (no RemoteCall support)"
       exit 0
       ;;
     *)
       echo "Unknown argument: $arg" >&2
-      echo "Usage: $0 [--macos]" >&2
+      echo "Usage: $0 [--macos] [--arm64]" >&2
       exit 2
       ;;
   esac
@@ -22,7 +27,7 @@ done
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEME="lara"
-CONFIGURATION="Release"
+CONFIGURATION="Debug"
 APP_NAME="lara"
 DIST_DIR="$PROJECT_DIR/dist"
 PAYLOAD_DIR="$DIST_DIR/Payload"
@@ -40,6 +45,13 @@ fi
 
 LARA_LDID_SIGN="${LARA_LDID_SIGN:-1}"
 LARA_LDID_ENTITLEMENTS="${LARA_LDID_ENTITLEMENTS:-$PROJECT_DIR/Config/lara.entitlements}"
+
+BUILD_ARCHS="arm64e"
+SWIFT_FLAGS=""
+if [[ "$BUILD_ARM64" == "1" ]]; then
+  BUILD_ARCHS="arm64"
+  SWIFT_FLAGS="SWIFT_ACTIVE_COMPILATION_CONDITIONS=DISABLE_REMOTECALL"
+fi
 
 rm -rf "$DIST_DIR" "$PROJECT_DIR/build"
 
@@ -63,7 +75,10 @@ run_xcodebuild() {
     ASSETCATALOG_COMPILER_APPICON_NAME="" \
     ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME="" \
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS=NO \
-    ENABLE_ON_DEMAND_RESOURCES=NO
+    ENABLE_ON_DEMAND_RESOURCES=NO \
+    ARCHS="$BUILD_ARCHS" \
+    ONLY_ACTIVE_ARCH=NO \
+    $SWIFT_FLAGS
 }
 
 prepare_maccatalyst_linker_path_workaround() {
@@ -76,7 +91,7 @@ prepare_maccatalyst_linker_path_workaround() {
   fi
 
   local pkg
-  for pkg in ZIPFoundation SWCompression BitByteData; do
+  for pkg in SWCompression BitByteData; do
     local release_dir="$intermediates_dir/${pkg}.build/Release"
     local macabi_dir="$intermediates_dir/${pkg}.build/Release-maccatalyst"
     mkdir -p "$release_dir"
@@ -106,7 +121,7 @@ set -e
 if [[ $XCODEBUILD_STATUS -ne 0 ]]; then
   echo "ERROR: xcodebuild failed (exit $XCODEBUILD_STATUS). Log: $XCODEBUILD_LOG" >&2
   echo "--- Last 200 lines ---" >&2
-  tail -n 200 "$XCODEBUILD_LOG" >&2 || true
+  cat "$XCODEBUILD_LOG" >&2 || true
   exit "$XCODEBUILD_STATUS"
 fi
 
@@ -145,7 +160,7 @@ fi
 
 rm -rf "$DEST_APP/_CodeSignature" "$DEST_APP/embedded.mobileprovision" || true
 
-# Ensure UIFileSharingEnabled is present (Xcode 26 build system drops this INFOPLIST_KEY_ setting)
+# nsure UIFileSharingEnabled is present (xcode 26 build system drops this INFOPLIST_KEY_ setting)
 plutil -replace UIFileSharingEnabled -bool YES "$DEST_APP/Info.plist"
 
 if [[ "$LARA_LDID_SIGN" == "1" ]]; then

@@ -11,6 +11,12 @@ permissions:
 jobs:
   build:
     runs-on: macos-14
+    strategy:
+      matrix:
+        include:
+          - arch: arm64e
+            flag: ""
+            suffix: ""
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -25,49 +31,56 @@ jobs:
 
       - name: build
         run: |
-          xcodebuild \
-            -project lara.xcodeproj \
-            -scheme lara \
-            -configuration Debug \
-            -sdk iphoneos \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            archive \
-            -archivePath $PWD/build/lara.xcarchive | tee build.log
-      
-          APP_PATH="$PWD/build/lara.xcarchive/Products/Applications/lara.app"
-          if [ ! -d "$APP_PATH" ]; then
-            echo "Missing app at $APP_PATH"
-            exit 1
-          fi
-          rm -rf "$PWD/build/Payload"
-          mkdir -p "$PWD/build/Payload"
-          cp -R "$APP_PATH" "$PWD/build/Payload/"
-          (cd "$PWD/build" && /usr/bin/zip -qry lara.ipa Payload)
+          chmod +x scripts/build_ipa.sh
+          LARA_LDID_SIGN=0 ./scripts/build_ipa.sh ${{ matrix.flag }}
+
+      - name: rename ipa
+        if: matrix.suffix != ''
+        run: mv dist/lara.ipa dist/lara${{ matrix.suffix }}.ipa
 
       - name: upload build artifact
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: lara-ipa
+          name: lara-ipa${{ matrix.suffix }}
           path: |
-            build/lara.ipa
-            build.log
+            dist/lara${{ matrix.suffix }}.ipa
+            build/xcodebuild.log
+
+      - name: upload ipa for release
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ipa${{ matrix.suffix }}
+          path: dist/lara${{ matrix.suffix }}.ipa
+
+  release:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: download all ipas
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-ipa*
+          merge-multiple: true
+          path: dist/
 
       - name: create release tag
-        if: github.event_name != 'pull_request'
         id: tag
         run: |
           TAG="build_$(date +'%Y%m%d%H%M%S')-$(git rev-parse --short HEAD)"
           echo "TAG=$TAG" >> $GITHUB_ENV
 
       - name: get last 12h commits
-        if: github.event_name != 'pull_request'
         id: commits
         run: |
           COMMITS=$(git log --since="12 hours ago" --pretty=format:"- %h %s (%an)")
-          # Use fallback text if no commits
           if [ -z "$COMMITS" ]; then
             COMMITS="No commits in the last 12 hours"
           fi
@@ -76,7 +89,6 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: delete old release
-        if: github.event_name != 'pull_request'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -96,12 +108,12 @@ jobs:
             }
 
       - name: create new release
-        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: latest
           name: Latest Build
           body: ${{ env.COMMITS }}
-          files: build/lara.ipa
+          files: |
+            dist/lara.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

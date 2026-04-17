@@ -31,7 +31,7 @@
 ## support
 lara will at its absolute best only ever support versions up to iOS 26.0.1/iOS 18.7.1. the exploit was patched after those versions.
 
-currently tested on iOS 17.1.1 - 26.0.1, up to iOS 18.7.1 only on the 18.7 series.
+currently tested on iOS 17.1 - 26.0.1, up to iOS 18.7.1 only on the 18.7 series.
 
 ## compatibility
 
@@ -44,9 +44,10 @@ currently tested on iOS 17.1.1 - 26.0.1, up to iOS 18.7.1 only on the 18.7 serie
 | **M-series chips** | M1, M2, M3, etc...  | **unsupported** |
 
 > [!CAUTION]
-> if you are on an M-series device or any iOS version higher than 26.0.1, the app will crash on launch. this isn't a bug, this means that the exploit is patched by Apple.
+> if you are on an M-series device or any iOS version higher than 26.0.1, the app will crash on launch. this isn't a bug, lara just doesnt support those devices yet.
 > 
-> **ANY ISSUES THAT INVOLVES LARA NOT WORKING ON UNSUPPORTED VERSIONS WILL BE CLOSED IMMEDIATLEY.**
+> **ISSUES THAT INVOLVE LARA NOT WORKING ON UNSUPPORTED VERSIONS WILL BE CLOSED IMMEDIATELY.**<br>
+> **Issues related to lara not working on versions that the exploit DOES technically support will be closed and added to the known issues section**
 
 If you run lara on your device, and it ends up working, please contact me on [discord](https://discord.gg/gw8PcRF3Jr) and tell me:
 1. your device
@@ -73,8 +74,26 @@ If lara doesnt work on your device, and you want to help the project, please als
 - downloading OTA updates does not work.
 - dirtyzero does not work.
 - ui is buggy on 17.x
-- doesnt work on ipad m2?
-- kernelcache download broken for some versions.
+- doesnt work on ipad m1-m4?
+- .aea ota updates do not work.
+- card overwrite seems to only overwrite one card.
+
+### fixes:
+kernelcache download fix:
+1. Download the IPSW tool for your device
+[here](https://github.com/blacktop/ipsw/releases/tag/v3.1.671).
+2. Extract the archive.
+3. Open Terminal.
+4. Navigate to the extracted folder:<br>
+`cd /path/to/ipsw_3.1.671_something_something/`
+5. Extract the kernel:
+./ipsw extract --kernel [drag your ipsw here]
+6. Get the kernelcache file.
+7. Transfer the kernelcache to your iPhone.
+8. In the Files app:
+   - Go to "On My iPhone" > "lara"
+   - Place the kernelcache file there.
+9. Rename the file to "kernelcache" (without extension).
 
 ## installation:
 <a href="https://celloserenity.github.io/altdirect/?url=https://raw.githubusercontent.com/rooootdev/lara/refs/heads/main/source.json" target="_blank">

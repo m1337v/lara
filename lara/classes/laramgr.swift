@@ -25,7 +25,9 @@ final class laramgr: ObservableObject {
     @Published var kaccesserror: String?
     @Published var fileopinprogress: Bool = false
     @Published var testresult: String?
+    #if !DISABLE_REMOTECALL
     @Published var remotecallrunning: Bool = false
+    #endif
     
     @Published var vfsready: Bool = false
     @Published var vfsinitlog: String = ""
@@ -40,6 +42,8 @@ final class laramgr: ObservableObject {
     
     static let shared = laramgr()
     static let fontpath = "/System/Library/Fonts/Core/SFUI.ttf"
+    static let italicfontpath = "/System/Library/Fonts/Core/SFUIItalic.ttf"
+    static let monofontpath = "/System/Library/Fonts/Core/SFUIMono.ttf"
     private init() {}
     
     func run(completion: ((Bool) -> Void)? = nil) {
@@ -50,7 +54,7 @@ final class laramgr: ObservableObject {
         dsattempted = true
         dsprogress = 0.0
         log = ""
-
+        
         ds_set_log_callback { messageCStr in
             guard let messageCStr else { return }
             let message = String(cString: messageCStr)
@@ -63,10 +67,10 @@ final class laramgr: ObservableObject {
                 laramgr.shared.dsprogress = progress
             }
         }
-
+        
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let result = ds_run()
-
+            
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.dsrunning = false
@@ -101,22 +105,22 @@ final class laramgr: ObservableObject {
             globallogger.log(message)
         }
     }
-
+    
     func kread64(address: UInt64) -> UInt64 {
         guard dsready else { return 0 }
         return ds_kread64(address)
     }
-
+    
     func kwrite64(address: UInt64, value: UInt64) {
         guard dsready else { return }
         ds_kwrite64(address, value)
     }
-
+    
     func kread32(address: UInt64) -> UInt32 {
         guard dsready else { return 0 }
         return ds_kread32(address)
     }
-
+    
     func kwrite32(address: UInt64, value: UInt32) {
         guard dsready else { return }
         ds_kwrite32(address, value)
@@ -132,14 +136,14 @@ final class laramgr: ObservableObject {
             ds_kwrite64(kernbase, 0xDEADBEEF)
         }
     }
-
+    
     func respring() {
         guard
             let url = URL(string: "https://roooot.dev/respring.html"),
             let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
             let rvc = scene.windows.first?.rootViewController
         else { return }
-
+        
         let svc = SFSafariViewController(url: url)
         rvc.present(svc, animated: true)
     }
@@ -155,7 +159,7 @@ final class laramgr: ObservableObject {
         vfsfailed = false
         vfsrunning = true
         vfsprogress = 0.0
-
+        
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let r = vfs_init()
             DispatchQueue.main.async {
@@ -174,15 +178,15 @@ final class laramgr: ObservableObject {
             }
         }
     }
-
+    
     func sbxescape(completion: ((Bool) -> Void)? = nil) {
         guard dsready, !sbxrunning else { return }
         sbxattempted = true
         sbxfailed = false
         sbxrunning = true
-
+        
         sbx_setlogcallback(laramgr.sbxlogcallback)
-
+        
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let r = sbx_escape(ds_get_our_proc())
             DispatchQueue.main.async {
@@ -207,7 +211,7 @@ final class laramgr: ObservableObject {
             laramgr.shared.logmsg("(sbx) " + s)
         }
     }
-
+    
     private static let vfslogcallback: @convention(c) (UnsafePointer<CChar>?) -> Void = { msg in
         guard let msg = msg else { return }
         let s = String(cString: msg)
@@ -216,7 +220,7 @@ final class laramgr: ObservableObject {
             laramgr.shared.logmsg("(vfs) " + s)
         }
     }
-
+    
     func vfslistdir(path: String) -> [(name: String, isDir: Bool)]? {
         guard vfsready else {
             logmsg(" listdir: not ready (\(path))")
@@ -230,7 +234,7 @@ final class laramgr: ObservableObject {
             return nil
         }
         defer { vfs_freelisting(entries) }
-
+        
         var items: [(String, Bool)] = []
         for i in 0..<Int(count) {
             let e = entries[i]
@@ -242,7 +246,7 @@ final class laramgr: ObservableObject {
         logmsg(" listdir \(path) -> \(items.count)")
         return items.sorted { $0.0.lowercased() < $1.0.lowercased() }
     }
-
+    
     func vfsread(path: String, maxSize: Int = 512 * 1024) -> Data? {
         guard vfsready else { return nil }
         let fsz = vfs_filesize(path)
@@ -253,7 +257,7 @@ final class laramgr: ObservableObject {
         if n <= 0 { return nil }
         return Data(buf.prefix(Int(n)))
     }
-
+    
     func vfswrite(path: String, data: Data) -> Bool {
         guard vfsready else { return false }
         return data.withUnsafeBytes { ptr in
@@ -261,38 +265,38 @@ final class laramgr: ObservableObject {
             return n > 0
         }
     }
-
+    
     func vfssize(path: String) -> Int64 {
         guard vfsready else { return -1 }
         return vfs_filesize(path)
     }
-
+    
     func vfsoverwritefromlocalpath(target: String, source: String) -> Bool {
         print("(vfs) target \(source) -> \(target)")
-
+        
         guard vfsready else {
             print("(vfs) not ready")
             return false
         }
-
+        
         guard FileManager.default.fileExists(atPath: source) else {
             print("(vfs) source file not found: \(source)")
             return false
         }
-
+        
         let r = vfs_overwritefile(target, source)
-
+        
         print("(vfs) vfs_overwritefile returned: \(r)")
-
+        
         if r == 0 {
             print("(vfs) file overwritten")
         } else {
             print("(vfs) failed to overwrite file")
         }
-
+        
         return r == 0
     }
-
+    
     func vfsoverwritewithdata(target: String, data: Data) -> Bool {
         guard vfsready else { return false }
         let tmp = NSTemporaryDirectory() + "vfs_src_\(arc4random()).bin"
@@ -308,7 +312,7 @@ final class laramgr: ObservableObject {
             return (false, "sbx open failed: errno=\(errno) \(String(cString: strerror(errno)))")
         }
         defer { close(fd) }
-
+        
         var total = 0
         let wroteAll = data.withUnsafeBytes { ptr -> Bool in
             guard let base = ptr.baseAddress else { return ptr.count == 0 }
@@ -319,20 +323,20 @@ final class laramgr: ObservableObject {
             }
             return true
         }
-
+        
         if !wroteAll {
             return (false, "sbx write failed: errno=\(errno) \(String(cString: strerror(errno)))")
         }
-
+        
         return (true, "ok (\(total) bytes)")
     }
-
+    
     @discardableResult
     func lara_overwritefile(target: String, source: String) -> (ok: Bool, message: String) {
         guard FileManager.default.fileExists(atPath: source) else {
             return (false, "source file not found: \(source)")
         }
-
+        
         let result: (ok: Bool, message: String)
         if sbxready {
             do {
@@ -344,30 +348,30 @@ final class laramgr: ObservableObject {
         } else {
             result = (false, "sbx not ready")
         }
-
+        
         if result.ok {
             return result
         }
-
+        
         guard vfsready else {
             return (false, result.message + " | vfs not ready")
         }
-
+        
         let ok = vfsoverwritefromlocalpath(target: target, source: source)
         return ok ? (true, "ok (vfs overwrite)") : (false, result.message + " | vfs overwrite failed")
     }
-
+    
     @discardableResult
     func lara_overwritefile(target: String, data: Data) -> (ok: Bool, message: String) {
         let result = sbxready ? sbxoverwrite(path: target, data: data) : (false, "sbx not ready")
         if result.0 {
             return result
         }
-
+        
         guard vfsready else {
             return (false, result.1 + ", vfs not ready")
         }
-
+        
         let ok = vfsoverwritewithdata(target: target, data: data)
         return ok ? (true, "vfs overwrite ok") : (false, result.1 + ", vfs overwrite failed")
     }
@@ -376,21 +380,40 @@ final class laramgr: ObservableObject {
         let result = path.withCString { cpath in
             vfs_zeropage(cpath, 0)
         }
-
+        
         if result != 0 {
             self.logmsg("(vfs) zeropage failed")
             return false
         }
-
+        
         self.logmsg("(vfs) zeroed first page of \(path)")
         return true
     }
     
-    func sbxgettoken(path: String) -> String? {
-        guard let cstr = path.cString(using: .utf8) else { return nil }
-        guard let result = sbx_gettoken(path as NSString as String) else { return nil }
-        let token = result as String
-        return token
+    func sbxgettoken(pid: Int32) -> UInt64? {
+        let addr = sbx_gettoken(pid)
+
+        guard addr != 0 else {
+            return nil
+        }
+
+        return addr
+    }
+
+    func sbxgettokenstring(pid: Int32) -> String? {
+        guard let cstr = sbx_copytoken(pid) else {
+            return nil
+        }
+        defer { sbx_freestr(cstr) }
+        return String(cString: cstr)
+    }
+
+    func sbxissuetoken(extClass: String, path: String) -> String? {
+        guard let cstr = sbx_issue_token(extClass, path) else {
+            return nil
+        }
+        defer { sbx_freestr(cstr) }
+        return String(cString: cstr)
     }
     
     func sbxelevate() {
@@ -431,4 +454,68 @@ final class laramgr: ObservableObject {
         print("changed owner of \(path) to \(uid):\(gid)!")
         return true
     }
+    
+    #if !DISABLE_REMOTECALL
+    func rcinit(process: String, migbypass: Bool = false, completion: ((Bool) -> Void)? = nil) {
+        guard dsready, !remotecallrunning else {
+            completion?(false)
+            return
+        }
+        
+        remotecallrunning = true
+        logmsg("initializing remote call on \(process)...")
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = init_remote_call(process, migbypass)
+            
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                let success = result == 0
+                if success {
+                    self.logmsg("remote call initialized on \(process)")
+                } else {
+                    self.logmsg("remote call init failed on \(process)")
+                    self.remotecallrunning = false
+                }
+                completion?(success)
+            }
+        }
+    }
+    
+    func rcdestroy(completion: (() -> Void)? = nil) {
+        guard remotecallrunning else { return }
+        
+        logmsg("destroying remote call session...")
+        remotecallrunning = false
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            destroy_remote_call()
+            
+            DispatchQueue.main.async {
+                self?.logmsg("remote call session destroyed")
+                completion?()
+            }
+        }
+    }
+    
+    //  params:
+    //  - name: function to call
+    //  - args: up to 8 args (x0-x7)
+    //  - timeout: timeout in ms
+    //  ret: return value from rc
+    func rccall(name: String, args: [UInt64] = [], timeout: Int32 = 100) -> UInt64 {
+        guard remotecallrunning else { return 0 }
+        
+        var padded = args
+        while padded.count < 8 {
+            padded.append(0)
+        }
+        
+        return do_remote_call_stable(
+            timeout, name,
+            padded[0], padded[1], padded[2], padded[3],
+            padded[4], padded[5], padded[6], padded[7]
+        )
+    }
+    #endif
 }

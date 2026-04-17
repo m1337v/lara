@@ -17,6 +17,7 @@ struct SettingsView: View {
     @AppStorage("keepalive") private var iskeepalive: Bool = true
     @AppStorage("showfmintabs") private var showfmintabs: Bool = true
     @AppStorage("selectedmethod") private var selectedmethod: method = .hybrid
+    @AppStorage("rcDockUnlimited") private var rcDockUnlimited: Bool = false
     
     var appname: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
@@ -103,6 +104,16 @@ struct SettingsView: View {
                 } footer: {
                     Text("Keep Alive keeps the app running in the background when it is minimized (not closed from app switcher).")
                 }
+
+                #if !DISABLE_REMOTECALL
+                Section {
+                    Toggle("Allow >10 dock icons", isOn: $rcDockUnlimited)
+                } header: {
+                    Text("RemoteCall")
+                } footer: {
+                    Text("Enables larger dock column counts in RemoteCall tweaks.")
+                }
+                #endif
 
                 Section {
                     if !hasoffsets {
