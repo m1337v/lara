@@ -11,6 +11,7 @@ struct RemoteView: View {
     @ObservedObject var mgr: laramgr
     @State private var running: Bool = false
     @State private var columns: Int = 5
+    @State private var performanceHUD: Int = 0
     @AppStorage("rcdockunlimited") private var rcdockunlimited: Bool = false
 
     private var dockMaxColumns: Int { rcdockunlimited ? 50 : 10 }
@@ -35,7 +36,11 @@ struct RemoteView: View {
                 } label: {
                     Text("Hide Icon Labels")
                 }
+            } header: {
+                Text("SpringBoard")
+            }
 
+            Section {
                 Stepper(value: $columns, in: 1...dockMaxColumns) {
                     HStack {
                         Text("Dock columns")
@@ -59,7 +64,9 @@ struct RemoteView: View {
                 } label: {
                     Text("Apply Dock Columns")
                 }
+            }
 
+            Section {
                 Button {
                     run("Enable Upside Down") {
                         let result = enable_upside_down(mgr.sbProc)
@@ -68,8 +75,49 @@ struct RemoteView: View {
                 } label: {
                     Text("Enable Upside Down")
                 }
-            } header: {
-                Text("SpringBoard")
+            }
+
+            Section {
+                Button {
+                    run("Enable Floating Dock") {
+                        let result = enable_floating_dock(mgr.sbProc)
+                        return "enable_floating_dock() -> \(result)"
+                    }
+                } label: {
+                    Text("Enable Floating Dock (Broken)")
+                }
+                
+                Button {
+                    run("Enable Grid App Switcher") {
+                        let result = enable_grid_app_switcher(mgr.sbProc)
+                        return "enable_grid_app_switcher() -> \(result)"
+                    }
+                } label: {
+                    Text("Enable Grid App Switcher (Broken animation)")
+                }
+            }
+            
+            Section {
+                Picker("Performance HUD", selection: $performanceHUD) {
+                    Text("Off").tag(-1)
+                    Text("Basic").tag(0)
+                    Text("Backdrops").tag(1)
+                    Text("Particles").tag(2)
+                    Text("Full").tag(3)
+                    Text("Power").tag(5)
+                    Text("EDR").tag(7)
+                    Text("Glitches").tag(8)
+                    Text("GPU Time").tag(9)
+                    Text("Memory Bandwidth").tag(10)
+                }
+                .onChange(of: performanceHUD) { newValue in
+                    set_performance_hud(mgr.sbProc, Int32(newValue))
+                }
+                .onAppear {
+                    if mgr.rcrunning {
+                        performanceHUD = Int(get_performance_hud(mgr.sbProc))
+                    }
+                }
             } footer: {
                 Text("These call into SpringBoard via RemoteCall. Keep RemoteCall initialized while running them.")
                 
