@@ -56,9 +56,15 @@ struct EditorView: View {
             _status = State(initialValue: "Failed to copy MobileGestalt: \(error)")
         }
         guard let cacheExtra = mg["CacheExtra"] as? NSMutableDictionary, let oPeik = cacheExtra["oPeik/9e8lQWMszEjbPzng"] as? NSMutableDictionary else {
+            _status = State(initialValue: "Failed to get dictionaries from MobileGestalt. Reopen the page.")
             return
         }
-        _selectedSubType = State(initialValue: oPeik["ArtworkDeviceSubType"] as? Int ?? -1)
+        guard let subType = oPeik["ArtworkDeviceSubType"] as? Int {
+            _status = State(initialValue: "Failed to get SubType from MobileGestalt. Reopen the page.")
+            return
+        }
+        _selectedSubType = State(initialValue: subType)
+        // This only happens on the first load
         if ogSubType == -1 {
             ogSubType = selectedSubType
         }
@@ -201,10 +207,16 @@ struct EditorView: View {
 
     private func apply() {
         do {
-            guard let cacheExtra = mg["CacheExtra"] as? NSMutableDictionary, let oPeik = cacheExtra["oPeik/9e8lQWMszEjbPzng"] as? NSMutableDictionary else {
+            if selectedSubType != -1 {
+                guard let cacheExtra = mg["CacheExtra"] as? NSMutableDictionary, let oPeik = cacheExtra["oPeik/9e8lQWMszEjbPzng"] as? NSMutableDictionary else {
+                    status = "Failed to get dictionaries from MobileGestalt."
+                    return
+                }
+                oPeik["ArtworkDeviceSubType"] = selectedSubType
+            } else {
+                status = "Selected SubType is -1? Reload the page."
                 return
             }
-            oPeik["ArtworkDeviceSubType"] = selectedSubType
             let data = try PropertyListSerialization.data(
                 fromPropertyList: mg,
                 format: .binary,
