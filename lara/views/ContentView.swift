@@ -380,6 +380,13 @@ struct ContentView: View {
                                             } label: {
                                                 Label("DarkBoard", systemImage: "app.badge")
                                             }
+                                            if os.majorVersion >= 26 {
+                                                NavigationLink {
+                                                    LGView()
+                                                } label: {
+                                                    Label("Liquid Glass", systemImage: "capsule")
+                                                }
+                                            }
                                         } header: {
                                             Text("UI Tweaks")
                                         }
@@ -389,15 +396,13 @@ struct ContentView: View {
                                             } label: {
                                                 Label("3 App Bypass", systemImage: "lock.open.fill")
                                             }
-
-                                        if os.majorVersion >= 26 {
-                                            NavigationLink("Liquid Glass") {
-                                                LGView()
+                                            NavigationLink {
+                                                WhitelistView()
+                                            } label: {
+                                                Label("Unblacklist (Broken?)", systemImage: "checkmark.seal")
                                             }
-                                        }
-
-                                        NavigationLink("3 App Bypass") {
-                                            AppsView(mgr: mgr)
+                                        } header: {
+                                            Text("App Management")
                                         }
                                         Section {
                                             if !showfmintabs {
