@@ -1,0 +1,45 @@
+name: branch build
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: true
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: setup xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: show xcode version
+        run: xcodebuild -version
+
+      - name: install ldid
+        run: brew install ldid
+
+      - name: build
+        run: |
+          chmod +x scripts/build_ipa.sh
+          ./scripts/build_ipa.sh
+
+      - name: upload ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: lara-${{ github.event.inputs.branch }}-${{ github.sha }}
+          path: |
+            build/lara.ipa
+            build/xcodebuild.log
