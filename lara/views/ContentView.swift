@@ -15,6 +15,8 @@ struct ContentView: View {
     @State private var showsettings = false
     @State private var selectedmethod: method = .hybrid
 
+    let os = ProcessInfo().operatingSystemVersion
+
     var body: some View {
         NavigationStack {
             List {
@@ -331,6 +333,12 @@ struct ContentView: View {
 
                                         NavigationLink("MobileGestalt") {
                                             EditorView()
+                                        }
+
+                                        if os.majorVersion >= 26 {
+                                            NavigationLink("Liquid Glass") {
+                                                LGView()
+                                            }
                                         }
 
                                         NavigationLink("3 App Bypass") {
