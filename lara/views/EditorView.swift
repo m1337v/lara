@@ -138,7 +138,11 @@ struct EditorView: View {
                                 .foregroundColor(.red)
                         }
                     }
-                    
+                    Button() {
+                        load()
+                    } label: {
+                        Text("Reload from plist")
+                    }
                     Button() {
                         apply()
                     } label: {
@@ -271,6 +275,9 @@ struct EditorView: View {
                 return false
             },
             set: { enabled in
+                if enabled {
+                    status = "Become iPadOS is a risky feature so please take note of the following:\n\n1. iOS Only apps, like WhatsApp, can lose data. It's recommended to offload these apps.\n2. The homescreen layout can get fucked if you have empty space.\n3. If you have an alphabetical password, it's very hard to get into your phone after locking.\n4. Any option with Dock under Stage Manager should NOT be modified.\n\n Only continue if you're okay with this. Else click reload from plist"
+                }
                 cacheData.mutableBytes.storeBytes(of: enabled ? 3 : 1, toByteOffset: valueOffset, as: Int.self)
                 for key in keys {
                     if enabled {
